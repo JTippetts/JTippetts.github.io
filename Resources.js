@@ -17,7 +17,7 @@
       } else {
         throw 'using preloaded data can only be done on a web page or in a web worker';
       }
-      var PACKAGE_NAME = 'C:/Users/verte/Projects/GoldRush_WebGL_Build/bin/Resources.js.data';
+      var PACKAGE_NAME = '/home/jtippetts/GoldRush_WebGL/bin/Resources.js.data';
       var REMOTE_PACKAGE_BASE = 'Resources.js.data';
       if (typeof Module['locateFilePackage'] === 'function' && !Module['locateFile']) {
         Module['locateFile'] = Module['locateFilePackage'];
@@ -294,10 +294,10 @@
             for (var i = 0; i < files.length; ++i) {
               DataRequest.prototype.requests[files[i].filename].onload();
             }
-                Module['removeRunDependency']('datafile_C:/Users/verte/Projects/GoldRush_WebGL_Build/bin/Resources.js.data');
+                Module['removeRunDependency']('datafile_/home/jtippetts/GoldRush_WebGL/bin/Resources.js.data');
 
       };
-      Module['addRunDependency']('datafile_C:/Users/verte/Projects/GoldRush_WebGL_Build/bin/Resources.js.data');
+      Module['addRunDependency']('datafile_/home/jtippetts/GoldRush_WebGL/bin/Resources.js.data');
     
       if (!Module.preloadResults) Module.preloadResults = {};
     
@@ -341,7 +341,7 @@
     }
   
    }
-   loadPackage({"files": [{"filename": "/Data.pak", "start": 0, "end": 10120483, "audio": 0}, {"filename": "/CoreData.pak", "start": 10120483, "end": 10276034, "audio": 0}], "remote_package_size": 10276034, "package_uuid": "d4f022d3-1a2f-493b-9a9a-fcd4c12b7619"});
+   loadPackage({"files": [{"filename": "/Data.pak", "start": 0, "end": 10120483, "audio": 0}, {"filename": "/CoreData.pak", "start": 10120483, "end": 10276034, "audio": 0}], "remote_package_size": 10276034, "package_uuid": "7dad1ae4-0de9-499f-b193-01897ed9a5e6"});
   
   })();
   
