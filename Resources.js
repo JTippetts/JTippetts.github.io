@@ -8,16 +8,14 @@
   (function() {
    var loadPackage = function(metadata) {
   
-      var PACKAGE_PATH;
+      var PACKAGE_PATH = '';
       if (typeof window === 'object') {
         PACKAGE_PATH = window['encodeURIComponent'](window.location.pathname.toString().substring(0, window.location.pathname.toString().lastIndexOf('/')) + '/');
-      } else if (typeof location !== 'undefined') {
-        // worker
+      } else if (typeof process === 'undefined' && typeof location !== 'undefined') {
+        // web worker
         PACKAGE_PATH = encodeURIComponent(location.pathname.toString().substring(0, location.pathname.toString().lastIndexOf('/')) + '/');
-      } else {
-        throw 'using preloaded data can only be done on a web page or in a web worker';
       }
-      var PACKAGE_NAME = '/home/jtippetts/GoldRush_WebGL/bin/Resources.js.data';
+      var PACKAGE_NAME = '/home/jtippetts/GoldRush_WebGL_Ninja/bin/Resources.js.data';
       var REMOTE_PACKAGE_BASE = 'Resources.js.data';
       if (typeof Module['locateFilePackage'] === 'function' && !Module['locateFile']) {
         Module['locateFile'] = Module['locateFilePackage'];
@@ -29,6 +27,18 @@
       var PACKAGE_UUID = metadata['package_uuid'];
     
       function fetchRemotePackage(packageName, packageSize, callback, errback) {
+        
+        if (typeof process === 'object' && typeof process.versions === 'object' && typeof process.versions.node === 'string') {
+          require('fs').readFile(packageName, function(err, contents) {
+            if (err) {
+              errback(err);
+            } else {
+              callback(contents.buffer);
+            }
+          });
+          return;
+        }
+      
         var xhr = new XMLHttpRequest();
         xhr.open('GET', packageName, true);
         xhr.responseType = 'arraybuffer';
@@ -116,7 +126,7 @@
       
               var files = metadata['files'];
               for (var i = 0; i < files.length; ++i) {
-                new DataRequest(files[i]['start'], files[i]['end'], files[i]['audio']).open('GET', files[i]['filename']);
+                new DataRequest(files[i]['start'], files[i]['end'], files[i]['audio'] || 0).open('GET', files[i]['filename']);
               }
       
         
@@ -294,10 +304,10 @@
             for (var i = 0; i < files.length; ++i) {
               DataRequest.prototype.requests[files[i].filename].onload();
             }
-                Module['removeRunDependency']('datafile_/home/jtippetts/GoldRush_WebGL/bin/Resources.js.data');
+                Module['removeRunDependency']('datafile_/home/jtippetts/GoldRush_WebGL_Ninja/bin/Resources.js.data');
 
       };
-      Module['addRunDependency']('datafile_/home/jtippetts/GoldRush_WebGL/bin/Resources.js.data');
+      Module['addRunDependency']('datafile_/home/jtippetts/GoldRush_WebGL_Ninja/bin/Resources.js.data');
     
       if (!Module.preloadResults) Module.preloadResults = {};
     
@@ -341,7 +351,7 @@
     }
   
    }
-   loadPackage({"files": [{"filename": "/Data.pak", "start": 0, "end": 10120483, "audio": 0}, {"filename": "/CoreData.pak", "start": 10120483, "end": 10276034, "audio": 0}], "remote_package_size": 10276034, "package_uuid": "e6763f2f-c95e-405e-97ef-4155f1785e00"});
+   loadPackage({"files": [{"filename": "/Data.pak", "start": 0, "end": 10122325}, {"filename": "/CoreData.pak", "start": 10122325, "end": 10926514}], "remote_package_size": 10926514, "package_uuid": "371a635a-c3ab-4e37-96ec-84adf67160b2"});
   
   })();
   
