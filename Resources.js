@@ -1,13 +1,16 @@
 
   var Module = typeof Module !== 'undefined' ? Module : {};
-  
+
   if (!Module.expectedDataFileDownloads) {
     Module.expectedDataFileDownloads = 0;
   }
+
   Module.expectedDataFileDownloads++;
   (function() {
-   var loadPackage = function(metadata) {
-  
+    // Do not attempt to redownload the virtual filesystem data when in a pthread or a Wasm Worker context.
+    if (Module['ENVIRONMENT_IS_PTHREAD'] || Module['$ww']) return;
+    var loadPackage = function(metadata) {
+
       var PACKAGE_PATH = '';
       if (typeof window === 'object') {
         PACKAGE_PATH = window['encodeURIComponent'](window.location.pathname.toString().substring(0, window.location.pathname.toString().lastIndexOf('/')) + '/');
@@ -15,19 +18,16 @@
         // web worker
         PACKAGE_PATH = encodeURIComponent(location.pathname.toString().substring(0, location.pathname.toString().lastIndexOf('/')) + '/');
       }
-      var PACKAGE_NAME = '/home/jtippetts/GoldRush_WebGL_Ninja/bin/Resources.js.data';
+      var PACKAGE_NAME = 'C:/Users/verte/Projects/GRR_web/bin/Resources.js.data';
       var REMOTE_PACKAGE_BASE = 'Resources.js.data';
       if (typeof Module['locateFilePackage'] === 'function' && !Module['locateFile']) {
         Module['locateFile'] = Module['locateFilePackage'];
         err('warning: you defined Module.locateFilePackage, that has been renamed to Module.locateFile (using your locateFilePackage for now)');
       }
       var REMOTE_PACKAGE_NAME = Module['locateFile'] ? Module['locateFile'](REMOTE_PACKAGE_BASE, '') : REMOTE_PACKAGE_BASE;
-    
-      var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
-      var PACKAGE_UUID = metadata['package_uuid'];
-    
+var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
+
       function fetchRemotePackage(packageName, packageSize, callback, errback) {
-        
         if (typeof process === 'object' && typeof process.versions === 'object' && typeof process.versions.node === 'string') {
           require('fs').readFile(packageName, function(err, contents) {
             if (err) {
@@ -38,7 +38,6 @@
           });
           return;
         }
-      
         var xhr = new XMLHttpRequest();
         xhr.open('GET', packageName, true);
         xhr.responseType = 'arraybuffer';
@@ -67,7 +66,7 @@
               num++;
             }
             total = Math.ceil(total * Module.expectedDataFileDownloads/num);
-            if (Module['setStatus']) Module['setStatus']('Downloading data... (' + loaded + '/' + total + ')');
+            if (Module['setStatus']) Module['setStatus'](`Downloading data... (${loaded}/${total})`);
           } else if (!Module.dataFileDownloads) {
             if (Module['setStatus']) Module['setStatus']('Downloading data...');
           }
@@ -89,47 +88,46 @@
       function handleError(error) {
         console.error('package error:', error);
       };
-    
+
     function runWithFS() {
-  
+
       function assert(check, msg) {
         if (!check) throw msg + new Error().stack;
       }
-  
-          /** @constructor */
-          function DataRequest(start, end, audio) {
-            this.start = start;
-            this.end = end;
-            this.audio = audio;
-          }
-          DataRequest.prototype = {
-            requests: {},
-            open: function(mode, name) {
-              this.name = name;
-              this.requests[name] = this;
-              Module['addRunDependency']('fp ' + this.name);
-            },
-            send: function() {},
-            onload: function() {
-              var byteArray = this.byteArray.subarray(this.start, this.end);
-              this.finish(byteArray);
-            },
-            finish: function(byteArray) {
-              var that = this;
-      
-          Module['FS_createDataFile'](this.name, null, byteArray, true, true, true); // canOwn this data in the filesystem, it is a slide into the heap that will never change
-          Module['removeRunDependency']('fp ' + that.name);
-  
-              this.requests[this.name] = null;
-            }
-          };
-      
-              var files = metadata['files'];
-              for (var i = 0; i < files.length; ++i) {
-                new DataRequest(files[i]['start'], files[i]['end'], files[i]['audio'] || 0).open('GET', files[i]['filename']);
-              }
-      
-        
+
+      /** @constructor */
+      function DataRequest(start, end, audio) {
+        this.start = start;
+        this.end = end;
+        this.audio = audio;
+      }
+      DataRequest.prototype = {
+        requests: {},
+        open: function(mode, name) {
+          this.name = name;
+          this.requests[name] = this;
+          Module['addRunDependency'](`fp ${this.name}`);
+        },
+        send: function() {},
+        onload: function() {
+          var byteArray = this.byteArray.subarray(this.start, this.end);
+          this.finish(byteArray);
+        },
+        finish: function(byteArray) {
+          var that = this;
+          // canOwn this data in the filesystem, it is a slide into the heap that will never change
+          Module['FS_createDataFile'](this.name, null, byteArray, true, true, true);
+          Module['removeRunDependency'](`fp ${that.name}`);
+          this.requests[this.name] = null;
+        }
+      };
+
+      var files = metadata['files'];
+      for (var i = 0; i < files.length; ++i) {
+        new DataRequest(files[i]['start'], files[i]['end'], files[i]['audio'] || 0).open('GET', files[i]['filename']);
+      }
+
+        var PACKAGE_UUID = metadata['package_uuid'];
         var indexedDB;
         if (typeof window === 'object') {
           indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
@@ -152,20 +150,20 @@
             return errback(e);
           }
           openRequest.onupgradeneeded = function(event) {
-            var db = event.target.result;
+            var db = /** @type {IDBDatabase} */ (event.target.result);
 
-            if(db.objectStoreNames.contains(PACKAGE_STORE_NAME)) {
+            if (db.objectStoreNames.contains(PACKAGE_STORE_NAME)) {
               db.deleteObjectStore(PACKAGE_STORE_NAME);
             }
             var packages = db.createObjectStore(PACKAGE_STORE_NAME);
 
-            if(db.objectStoreNames.contains(METADATA_STORE_NAME)) {
+            if (db.objectStoreNames.contains(METADATA_STORE_NAME)) {
               db.deleteObjectStore(METADATA_STORE_NAME);
             }
             var metadata = db.createObjectStore(METADATA_STORE_NAME);
           };
           openRequest.onsuccess = function(event) {
-            var db = event.target.result;
+            var db = /** @type {IDBDatabase} */ (event.target.result);
             callback(db);
           };
           openRequest.onerror = function(error) {
@@ -197,7 +195,7 @@
             nextChunkSliceStart += CHUNK_SIZE;
             var putPackageRequest = packages.put(
               packageData.slice(chunkSliceStart, nextChunkSliceStart),
-              'package/' + packageName + '/' + chunkId
+              `package/${packageName}/${chunkId}`
             );
             chunkSliceStart = nextChunkSliceStart;
             putPackageRequest.onsuccess = function(event) {
@@ -213,7 +211,7 @@
                     'uuid': packageMeta.uuid,
                     'chunkCount': chunkCount
                   },
-                  'metadata/' + packageName
+                  `metadata/${packageName}`
                 );
                 putMetadataRequest.onsuccess = function(event) {
                   callback(packageData);
@@ -233,7 +231,7 @@
         function checkCachedPackage(db, packageName, callback, errback) {
           var transaction = db.transaction([METADATA_STORE_NAME], IDB_RO);
           var metadata = transaction.objectStore(METADATA_STORE_NAME);
-          var getRequest = metadata.get('metadata/' + packageName);
+          var getRequest = metadata.get(`metadata/${packageName}`);
           getRequest.onsuccess = function(event) {
             var result = event.target.result;
             if (!result) {
@@ -257,7 +255,7 @@
           var chunks = new Array(chunkCount);
 
           for (var chunkId = 0; chunkId < chunkCount; chunkId++) {
-            var getRequest = packages.get('package/' + packageName + '/' + chunkId);
+            var getRequest = packages.get(`package/${packageName}/${chunkId}`);
             getRequest.onsuccess = function(event) {
               // If there's only 1 chunk, there's nothing to concatenate it with so we can just return it now
               if (chunkCount == 1) {
@@ -290,27 +288,24 @@
             };
           }
         }
-      
+
       function processPackageData(arrayBuffer) {
         assert(arrayBuffer, 'Loading data file failed.');
-        assert(arrayBuffer instanceof ArrayBuffer, 'bad input to processPackageData');
+        assert(arrayBuffer.constructor.name === ArrayBuffer.name, 'bad input to processPackageData');
         var byteArray = new Uint8Array(arrayBuffer);
         var curr;
-        
-          // Reuse the bytearray from the XHR as the source for file reads.
+        // Reuse the bytearray from the XHR as the source for file reads.
           DataRequest.prototype.byteArray = byteArray;
-    
-            var files = metadata['files'];
-            for (var i = 0; i < files.length; ++i) {
-              DataRequest.prototype.requests[files[i].filename].onload();
-            }
-                Module['removeRunDependency']('datafile_/home/jtippetts/GoldRush_WebGL_Ninja/bin/Resources.js.data');
+          var files = metadata['files'];
+          for (var i = 0; i < files.length; ++i) {
+            DataRequest.prototype.requests[files[i].filename].onload();
+          }          Module['removeRunDependency']('datafile_C:/Users/verte/Projects/GRR_web/bin/Resources.js.data');
 
       };
-      Module['addRunDependency']('datafile_/home/jtippetts/GoldRush_WebGL_Ninja/bin/Resources.js.data');
-    
+      Module['addRunDependency']('datafile_C:/Users/verte/Projects/GRR_web/bin/Resources.js.data');
+
       if (!Module.preloadResults) Module.preloadResults = {};
-    
+
         function preloadFallback(error) {
           console.error(error);
           console.error('falling back to default preload behavior');
@@ -341,7 +336,7 @@
         , preloadFallback);
 
         if (Module['setStatus']) Module['setStatus']('Downloading...');
-      
+
     }
     if (Module['calledRun']) {
       runWithFS();
@@ -349,9 +344,8 @@
       if (!Module['preRun']) Module['preRun'] = [];
       Module["preRun"].push(runWithFS); // FS is not initialized yet, wait for it
     }
-  
-   }
-   loadPackage({"files": [{"filename": "/Data.pak", "start": 0, "end": 10122586}, {"filename": "/CoreData.pak", "start": 10122586, "end": 10926775}], "remote_package_size": 10926775, "package_uuid": "bca6c27b-bb9e-4b31-b2c0-ae720594c147"});
-  
+
+    }
+    loadPackage({"files": [{"filename": "/CoreData.pak", "start": 0, "end": 694249}, {"filename": "/Data.pak", "start": 694249, "end": 24962123}], "remote_package_size": 24962123, "package_uuid": "sha256-3a1b40449bf978b4493dcdc3e126bec4fe1feaace1ddf0016535d83ae415718b"});
+
   })();
-  
